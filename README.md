@@ -10,7 +10,7 @@ This repository contains the implementation and related materials for the paper 
 ### **Poster Presentation**
 You can view the poster summarizing the research paper by clicking the link below:
 
-[View Poster (PDF)](poster-presentation/poster_no_intro.pdf)
+[View Poster (PDF)](https://github.com/JakubCiesko/ML-NLP-WTWPD/blob/poster-presentation/poster_no_intro.pdf)
 
 For convenience, here's a preview of the poster:
 
