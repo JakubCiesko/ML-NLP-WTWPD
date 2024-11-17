@@ -26,7 +26,7 @@ def train_model(input_filename: str,
     )
 
 
-def save_model(model, output_file: str) -> None:
+def save_model(model: fasttext.FastText._FastText, output_file: str) -> None:
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     with open(output_file, "w") as f: 
         for word in tqdm.tqdm(model.words):
