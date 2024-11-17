@@ -33,8 +33,3 @@ For convenience, here's a preview of the poster:
 4. **Evaluation:** Achieves competitive results across multiple language pairs, even in low-resource settings.
 
 ---
-
-### **How to Use This Repository**
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-repo-name.git
