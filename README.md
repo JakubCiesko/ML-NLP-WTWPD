@@ -14,7 +14,7 @@ You can view the poster summarizing the research paper by clicking the link belo
 
 For convenience, here's a preview of the poster:
 
-![Poster Preview](poster-presentation/poster_preview.png)
+![Poster Preview](./poster_preview.png)
 
 ---
 
