@@ -1,4 +1,4 @@
-from training.model import build_model
+from models.model import build_model
 
 
 model = build_model()
