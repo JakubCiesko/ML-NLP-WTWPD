@@ -1,4 +1,5 @@
-from models.model import build_model
+from models.gan import build_gan
+from constraints.orthogonality import apply_orthogonality
 
 
-model = build_model()
+model = build_gan()
