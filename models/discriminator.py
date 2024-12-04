@@ -13,7 +13,7 @@ class Discriminator(torch.nn.Module):
             nn.LeakyReLU(leaky_relu_slope), 
             nn.Linear(hidden_dim, hidden_dim),  
             nn.LeakyReLU(leaky_relu_slope),                 
-            nn.Dropout(dropout_rate),           
+            #nn.Dropout(dropout_rate),           
             nn.Linear(hidden_dim, 1)         
         )
         self.smoothing_coeff = smoothing_coeff
