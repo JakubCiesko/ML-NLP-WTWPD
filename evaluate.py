@@ -13,4 +13,9 @@ def evaluate(src_emb, tgt_emb, src_lang, tgt_lang, dico_eval):
         parser.add_argument("--dico_eval", type=str, required=True, help="Path to the evaluation dictionary")
         args = parser.parse_args()
 
+    # check parameters
+
+    # build logger / model / trainer / evaluator
+
+    # run evaluations
     evaluate(args.src_emb, args.tgt_emb, args.src_lang, args.tgt_lang, args.dico_eval)
