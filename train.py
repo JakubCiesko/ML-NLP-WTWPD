@@ -122,6 +122,7 @@ def main():
     # Trainer
     trainer = Trainer(
         gan=gan,
+        dataloader=train_loader,
         optimizer_mapping=mapping_optimizer,
         optimizer_discriminator=discriminator_optimizer,
         criterion_mapping=criterion_mapping,
@@ -132,7 +133,7 @@ def main():
     )
 
     # Train
-    d_l, m_l = trainer.train(dataloader=train_loader, num_epochs=args.num_epochs, log_interval=args.log_interval)
+    d_l, m_l = trainer.train(num_epochs=args.num_epochs, log_interval=args.log_interval)
 
     # Plot losses
     plt.plot(d_l, label="Discriminator Loss")
