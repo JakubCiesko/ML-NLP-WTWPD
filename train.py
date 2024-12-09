@@ -42,6 +42,8 @@ def main():
     parser.add_argument('--lr_mapping', type=float, default=0.1, help="Learning rate for the mapping optimizer")
     parser.add_argument('--lr_discriminator', type=float, default=0.1, help="Learning rate for the discriminator optimizer")
     parser.add_argument('--log_interval', type=int, default=10, help="Interval for logging training progress")
+    parser.add_argument('--mapping_decay', type=float, default=1., help="LR decay for mapping")
+    parser.add_argument('--discriminator_decay', type=float, default=1., help="LR decay for discriminator")
     
     # Model parameters
     parser.add_argument('--embedding_dim', type=int, default=300, help="Dimensionality of the embeddings")
@@ -70,7 +72,6 @@ def main():
 
     # Device argument (CPU or CUDA)
     parser.add_argument('--device', type=str, default="cpu", help="Device to run the model on ('cpu' or 'cuda')")
-
 
     args = parser.parse_args()
 
@@ -112,8 +113,10 @@ def main():
         discriminator_optimizer = torch.optim.Adam(gan.discriminator.parameters(), lr=args.lr_discriminator)
     else:
         discriminator_optimizer = torch.optim.SGD(gan.discriminator.parameters(), lr=args.lr_discriminator)
-    #mapping_optimizer = torch.optim.SGD(gan.mapping.parameters(), lr=args.lr_mapping)
-    #discriminator_optimizer = torch.optim.SGD(gan.discriminator.parameters(), lr=args.lr_discriminator)
+
+    # Schedulers
+    scheduler_mapping = torch.optim.lr_scheduler.ExponentialLR(mapping_optimizer, gamma=args.mapping_decay)
+    scheduler_discriminator = torch.optim.lr_scheduler.ExponentialLR(discriminator_optimizer, gamma=args.discriminator_decay)
 
     # Loss functions
     criterion_mapping = torch.nn.BCELoss()
@@ -127,8 +130,8 @@ def main():
         optimizer_discriminator=discriminator_optimizer,
         criterion_mapping=criterion_mapping,
         criterion_discriminator=criterion_discriminator,
-        scheduler_mapping=None,
-        scheduler_discriminator=None, 
+        scheduler_mapping=scheduler_mapping,
+        scheduler_discriminator=scheduler_discriminator, 
         device=args.device
     )
 
