@@ -49,6 +49,19 @@ def main():
     parser.add_argument('--dropout_rate', type=float, default=0.1, help="Dropout rate for the discriminator")
     parser.add_argument('--smoothing_coeff', type=float, default=0.2, help="Smoothing coefficient for the discriminator")
     parser.add_argument('--leaky_relu_slope', type=float, default=0.1, help="Slope of LeakyReLU activation")
+    parser.add_argument('--weight_init', type=str, choices=[
+            'xavier_uniform', 'xavier_normal', 'kaiming_uniform', 'kaiming_normal', 
+            'orthogonal', 'uniform', 'normal', 'zeros', 'ones'
+        ], 
+        #default='xavier_uniform',
+        help="Weight initialization method for the network (choices: 'xavier_uniform', 'xavier_normal', 'kaiming_uniform', 'kaiming_normal', 'orthogonal', 'uniform', 'normal', 'zeros', 'ones')"
+    )
+    parser.add_argument('--optimizer_mapping', type=str, choices=['sgd', 'adam'], default='sgd', 
+                    help="Optimizer for the mapping network (choices: 'sgd', 'adam')")
+    parser.add_argument('--optimizer_discriminator', type=str, choices=['sgd', 'adam'], default='sgd', 
+                    help="Optimizer for the discriminator network (choices: 'sgd', 'adam')")
+
+
 
     # Input data
     parser.add_argument('--src_emb_file', type=str, default=None, help="Path to the source embeddings file")
@@ -76,7 +89,7 @@ def main():
     # Create DataLoader
     dataset = TensorDataset(source_embeddings, target_embeddings)
     train_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
-
+     
     # Initialize GAN model
     gan = GAN(
         input_dim=args.embedding_dim,
@@ -84,12 +97,23 @@ def main():
         hidden_dim=args.hidden_dim,
         dropout_rate=args.dropout_rate,
         smoothing_coeff=args.smoothing_coeff,
-        leaky_relu_slope=args.leaky_relu_slope
+        leaky_relu_slope=args.leaky_relu_slope,
+        initialization=args.weight_init,
+        bias=None
     )
 
     # Optimizers
-    mapping_optimizer = torch.optim.SGD(gan.mapping.parameters(), lr=args.lr_mapping)
-    discriminator_optimizer = torch.optim.SGD(gan.discriminator.parameters(), lr=args.lr_discriminator)
+    if args.optimizer_mapping == 'adam':
+        mapping_optimizer = torch.optim.Adam(gan.mapping.parameters(), lr=args.lr_mapping)
+    else:
+        mapping_optimizer = torch.optim.SGD(gan.mapping.parameters(), lr=args.lr_mapping)
+
+    if args.optimizer_discriminator == 'adam':
+        discriminator_optimizer = torch.optim.Adam(gan.discriminator.parameters(), lr=args.lr_discriminator)
+    else:
+        discriminator_optimizer = torch.optim.SGD(gan.discriminator.parameters(), lr=args.lr_discriminator)
+    #mapping_optimizer = torch.optim.SGD(gan.mapping.parameters(), lr=args.lr_mapping)
+    #discriminator_optimizer = torch.optim.SGD(gan.discriminator.parameters(), lr=args.lr_discriminator)
 
     # Loss functions
     criterion_mapping = torch.nn.BCELoss()
@@ -111,10 +135,10 @@ def main():
     d_l, m_l = trainer.train(dataloader=train_loader, num_epochs=args.num_epochs, log_interval=args.log_interval)
 
     # Plot losses
-    #plt.plot(d_l, label="Discriminator Loss")
-    #plt.plot(m_l, label="Mapping Loss")
-    #plt.legend()
-    #plt.show()
+    plt.plot(d_l, label="Discriminator Loss")
+    plt.plot(m_l, label="Mapping Loss")
+    plt.legend()
+    plt.show()
 
 
 if __name__ == "__main__":
