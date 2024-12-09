@@ -1,7 +1,12 @@
-from models.trainer import Trainer
-from models.gan import GAN
-from torch.utils.data import DataLoader, TensorDataset
 import torch 
+import pickle
+import argparse
+import numpy as np
+from models.gan import GAN
+from models.trainer import Trainer
+from torch.utils.data import DataLoader, TensorDataset
+from matplotlib import pyplot as plt
+
 
 
 def generate_synthetic_data(num_samples=1000, embedding_dim=300):
@@ -16,34 +21,101 @@ def generate_synthetic_data(num_samples=1000, embedding_dim=300):
     target_embeddings = torch.matmul(source_embeddings, true_w)
     return source_embeddings, target_embeddings
 
-
-batch_size = 32
-num_epochs = 10
-
-source_embeddings, target_embeddings = generate_synthetic_data(embedding_dim=20)
-dataset = TensorDataset(source_embeddings, target_embeddings)
-train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-
-
-
-gan = GAN(input_dim=20, output_dim=20, hidden_dim=100, dropout_rate=0.1, smoothing_coeff=0.1)
-
-mapping_optimizer = torch.optim.SGD(gan.mapping.parameters(), lr=0.1)
-discriminator_optimizer = torch.optim.SGD(gan.discriminator.parameters(), lr=0.01)
+def load_embeddings(path):
+    with open(path, 'rb') as f:
+        embeddings = pickle.load(f)
+        embeddings = np.array([emb["vector"] for emb in embeddings.values()])
+    if isinstance(embeddings, torch.Tensor):
+        embeddings = embeddings
+    else:
+        embeddings = torch.tensor(embeddings, dtype=torch.float32)
+    return embeddings
 
 
-criterion = torch.nn.BCELoss()
+def main():
+    # Argument parser
+    parser = argparse.ArgumentParser(description="Train a GAN model for embedding mapping")
+    
+    # Training parameters
+    parser.add_argument('--batch_size', type=int, default=32, help="Batch size for training")
+    parser.add_argument('--num_epochs', type=int, default=25, help="Number of training epochs")
+    parser.add_argument('--lr_mapping', type=float, default=0.1, help="Learning rate for the mapping optimizer")
+    parser.add_argument('--lr_discriminator', type=float, default=0.1, help="Learning rate for the discriminator optimizer")
+    parser.add_argument('--log_interval', type=int, default=10, help="Interval for logging training progress")
+    
+    # Model parameters
+    parser.add_argument('--embedding_dim', type=int, default=300, help="Dimensionality of the embeddings")
+    parser.add_argument('--hidden_dim', type=int, default=2048, help="Hidden dimension for the discriminator")
+    parser.add_argument('--dropout_rate', type=float, default=0.1, help="Dropout rate for the discriminator")
+    parser.add_argument('--smoothing_coeff', type=float, default=0.2, help="Smoothing coefficient for the discriminator")
+    parser.add_argument('--leaky_relu_slope', type=float, default=0.1, help="Slope of LeakyReLU activation")
 
-trainer = Trainer(
-    gan=gan,
-    optimizer_mapping=mapping_optimizer,
-    optimizer_discriminator=discriminator_optimizer,
-    criterion=criterion,
-    scheduler_mapping=None,
-    scheduler_discriminator=None
-)
+    # Input data
+    parser.add_argument('--src_emb_file', type=str, default=None, help="Path to the source embeddings file")
+    parser.add_argument('--tgt_emb_file', type=str, default=None, help="Path to the target embeddings file")
+    parser.add_argument('--num_samples', type=int, default=1000, help="Number of synthetic samples (if no files provided)")
+
+    # Device argument (CPU or CUDA)
+    parser.add_argument('--device', type=str, default="cpu", help="Device to run the model on ('cpu' or 'cuda')")
 
 
+    args = parser.parse_args()
 
-trainer.train(dataloader=train_loader, num_epochs=num_epochs, log_interval=1)
+    # Load embeddings
+    if args.src_emb_file and args.tgt_emb_file:
+        print(f"Loading embeddings from {args.src_emb_file} and {args.tgt_emb_file}...")
+        # Replace this with the actual file loading logic
+        source_embeddings = load_embeddings(args.src_emb_file)[:args.num_samples]
+        target_embeddings = load_embeddings(args.tgt_emb_file)[:args.num_samples]
+    else:
+        print("Generating synthetic embeddings...")
+        source_embeddings, target_embeddings = generate_synthetic_data(
+            num_samples=args.num_samples, embedding_dim=args.embedding_dim
+        )
 
+    # Create DataLoader
+    dataset = TensorDataset(source_embeddings, target_embeddings)
+    train_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+
+    # Initialize GAN model
+    gan = GAN(
+        input_dim=args.embedding_dim,
+        output_dim=args.embedding_dim,
+        hidden_dim=args.hidden_dim,
+        dropout_rate=args.dropout_rate,
+        smoothing_coeff=args.smoothing_coeff,
+        leaky_relu_slope=args.leaky_relu_slope
+    )
+
+    # Optimizers
+    mapping_optimizer = torch.optim.SGD(gan.mapping.parameters(), lr=args.lr_mapping)
+    discriminator_optimizer = torch.optim.SGD(gan.discriminator.parameters(), lr=args.lr_discriminator)
+
+    # Loss functions
+    criterion_mapping = torch.nn.BCELoss()
+    criterion_discriminator = torch.nn.BCELoss()
+
+    # Trainer
+    trainer = Trainer(
+        gan=gan,
+        optimizer_mapping=mapping_optimizer,
+        optimizer_discriminator=discriminator_optimizer,
+        criterion_mapping=criterion_mapping,
+        criterion_discriminator=criterion_discriminator,
+        scheduler_mapping=None,
+        scheduler_discriminator=None, 
+        device=args.device
+    )
+
+    # Train
+    d_l, m_l = trainer.train(dataloader=train_loader, num_epochs=args.num_epochs, log_interval=args.log_interval)
+
+    # Plot losses
+    #plt.plot(d_l, label="Discriminator Loss")
+    #plt.plot(m_l, label="Mapping Loss")
+    #plt.legend()
+    #plt.show()
+
+
+if __name__ == "__main__":
+    main()
