@@ -1,4 +1,5 @@
 import torch
+from tqdm import tqdm
 
 
 class Trainer():
@@ -17,7 +18,7 @@ class Trainer():
     def train(self, num_epochs, log_interval=10):
         dataloader = self.dataloader
         discriminator_losses, mapping_losses = [], []
-        for epoch in range(1, num_epochs + 1):
+        for epoch in tqdm(range(1, num_epochs + 1)):
             mapping_loss_val, discriminator_loss_val = 0, 0
 
             for batch_i, (source_emb, target_emb) in enumerate(dataloader, start=1):
