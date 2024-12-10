@@ -38,7 +38,7 @@ class Trainer():
                 
                 # Mapping Training 
                 fake_emb = self.gan.mapping(source_emb).to(self.device)
-                mapping_input = torch.cat([target_emb, fake_emb], 0).to(self.device)
+                mapping_input = torch.cat([fake_emb, target_emb], 0).to(self.device)
                 mapping_labels = 1 - torch.cat((torch.ones(bs), torch.zeros(bs)), 0).to(self.device)
                 mapping_labels = self.smooth_labels(mapping_labels, bs).to(self.device)
                 mapping_loss_val += self.mapping_step(mapping_input, mapping_labels, True)
