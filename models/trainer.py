@@ -1,4 +1,6 @@
 import torch
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
 
 
@@ -79,3 +81,25 @@ class Trainer():
         if normalize:
             self.gan.mapping.normalize()
         return mapping_loss.data.item()
+
+    def compute_average_similarity(self, embeddings, k=10):
+        similarities = cosine_similarity(embeddings)
+        np.fill_diagonal(similarities, -np.inf)  # Ignore self-similarity
+        avg_similarities = np.mean(np.sort(similarities, axis=1)[:, -k:], axis=1)
+        return avg_similarities
+
+    def compute_csls_score(self, source_embeddings, target_embeddings, k=10):
+        source_avg_sim = self.compute_average_similarity(source_embeddings, k)
+        target_avg_sim = self.compute_average_similarity(target_embeddings, k)
+        
+        csls_scores = np.zeros((source_embeddings.shape[0], target_embeddings.shape[0]))
+        for i, source_vec in enumerate(source_embeddings):
+            for j, target_vec in enumerate(target_embeddings):
+                csls_scores[i, j] = 2 * cosine_similarity([source_vec], [target_vec])[0][0] - source_avg_sim[i] - target_avg_sim[j]
+        
+        return csls_scores
+
+    def find_nearest_neighbors(self, source_embeddings, target_embeddings, k=10):
+        csls_scores = self.compute_csls_score(source_embeddings, target_embeddings, k)
+        nearest_neighbors = np.argmax(csls_scores, axis=1)
+        return nearest_neighbors
