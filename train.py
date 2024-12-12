@@ -89,8 +89,7 @@ def main():
 
     # Create DataLoader
     dataset = TensorDataset(source_embeddings, target_embeddings)
-    train_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
-     
+    train_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
     # Initialize GAN model
     gan = GAN(
         input_dim=args.embedding_dim,

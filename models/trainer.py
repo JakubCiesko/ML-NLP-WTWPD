@@ -13,35 +13,28 @@ class Trainer():
         self.criterion_discriminator = criterion_discriminator
         self.scheduler_mapping = scheduler_mapping
         self.scheduler_discriminator = scheduler_discriminator
+        self.batch_size = dataloader.batch_size
 
     def train(self, num_epochs, log_interval=10):
-        print("Training 3!")
         dataloader = self.dataloader
         discriminator_losses, mapping_losses = [], []
         epoch_bar = tqdm(range(1, num_epochs + 1), desc="Training Progress")
         for epoch in epoch_bar:
             mapping_loss_val, discriminator_loss_val = 0, 0
             for batch_i, (source_emb, target_emb) in enumerate(dataloader, start=1):
-                bs = source_emb.size(0)
-                source_emb, target_emb = source_emb.to(self.device), target_emb.to(self.device)
-                fake_emb = self.gan.mapping(source_emb).to(self.device)
                 
-                discriminator_input = torch.cat([fake_emb, target_emb], 0).to(self.device) # concat mapped source & target emb
-                discriminator_labels = torch.cat((torch.ones(bs), torch.zeros(bs)), 0).to(self.device) # [1,..., 1, 0,....,0]
-                
-                # Smoothing
-                discriminator_labels = self.smooth_labels(discriminator_labels, bs).to(self.device)
-                
-                # Discriminator Training
+                # Discriminator training
+                self.gan.discriminator.train()
+                self.optimizer_discriminator.zero_grad()
+                discriminator_input, discriminator_labels = self.get_xy(source_emb, target_emb)
                 discriminator_loss_val += self.discriminator_step(discriminator_input, discriminator_labels)
-                
-                # Mapping Training 
-                fake_emb = self.gan.mapping(source_emb).to(self.device)
-                mapping_input = torch.cat([fake_emb, target_emb], 0).to(self.device)
-                discriminator_labels = torch.cat((torch.ones(bs), torch.zeros(bs)), 0).to(self.device)
-                discriminator_labels = self.smooth_labels(discriminator_labels, bs).to(self.device)
-                mapping_labels = 1 - discriminator_labels     
-                mapping_loss_val += self.mapping_step(mapping_input, mapping_labels, True)
+                if batch_i % 2 == 0:
+                    # Mapping Training 
+                    self.gan.discriminator.eval()
+                    self.optimizer_mapping.zero_grad()
+                    discriminator_input, discriminator_labels = self.get_xy(source_emb, target_emb)
+                    mapping_labels = 1 - discriminator_labels     
+                    mapping_loss_val += self.mapping_step(discriminator_input, mapping_labels, normalize=True)
             
             self.scheduler_discriminator.step()
             self.scheduler_mapping.step()   
@@ -60,25 +53,29 @@ class Trainer():
         
     def smooth_labels(self, labels, point):
         smoothing_coef = self.gan.discriminator.smoothing_coeff if self.gan.discriminator.smoothing_coeff else 0
-        labels[:point] = 1 - smoothing_coef #first batch_size embeddings come from mapping
-        labels[point:] = smoothing_coef #second batch:size embeddings come from the original distribution
+        labels[:point] = 1 - smoothing_coef 
+        labels[point:] = smoothing_coef 
         labels = labels.unsqueeze(1)
         return labels
+    
+    def get_xy(self, source_emb, target_emb):
+        source_emb, target_emb = source_emb.to(self.device), target_emb.to(self.device)
+        mapped_emb = self.gan.mapping(source_emb)
+        x = torch.cat([mapped_emb, target_emb], 0).to(self.device)
+        y = torch.Tensor(2*self.batch_size).zero_().float().to(self.device)
+        y = self.smooth_labels(y, self.batch_size)
+        return x, y
 
     def discriminator_step(self, discriminator_input, discriminator_labels):
-        self.gan.discriminator.train()
-        self.optimizer_discriminator.zero_grad()
         preds = self.gan.discriminator(discriminator_input)
-        discriminator_loss = self.criterion_discriminator(preds, discriminator_labels)
+        discriminator_loss = self.criterion_discriminator(preds, discriminator_labels).to(self.device)
         discriminator_loss.backward()
         self.optimizer_discriminator.step()
         return discriminator_loss.data.item()
 
-    def mapping_step(self, mapping_input, mapping_labels, normalize=True):
-        self.gan.discriminator.eval()
-        self.optimizer_mapping.zero_grad()
-        preds = self.gan.discriminator(mapping_input)
-        mapping_loss = self.criterion_mapping(preds, mapping_labels)
+    def mapping_step(self, discriminator_input, mapping_labels, normalize=True):
+        preds = self.gan.discriminator(discriminator_input)
+        mapping_loss = self.criterion_mapping(preds, mapping_labels).to(self.device)
         mapping_loss.backward()
         self.optimizer_mapping.step()
         if normalize:
