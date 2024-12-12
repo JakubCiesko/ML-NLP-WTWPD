@@ -3,9 +3,10 @@ from tqdm import tqdm
 
 
 class Trainer():
-    def __init__(self, gan, dataloader, optimizer_mapping, optimizer_discriminator, criterion_mapping, criterion_discriminator, scheduler_mapping=None, scheduler_discriminator=None, device='cpu'):
+    def __init__(self, gan, source_embeddings, target_embeddings, optimizer_mapping, optimizer_discriminator, criterion_mapping, criterion_discriminator, scheduler_mapping=None, scheduler_discriminator=None, device='cpu'):
         self.device = device
-        self.dataloader = dataloader
+        self.source_embeddings=source_embeddings
+        self.target_embeddings=target_embeddings
         self.gan = gan.to(device)
         self.optimizer_mapping = optimizer_mapping
         self.optimizer_discriminator = optimizer_discriminator
@@ -13,34 +14,32 @@ class Trainer():
         self.criterion_discriminator = criterion_discriminator
         self.scheduler_mapping = scheduler_mapping
         self.scheduler_discriminator = scheduler_discriminator
-        self.batch_size = dataloader.batch_size
 
-    def train(self, num_epochs, log_interval=10):
-        dataloader = self.dataloader
+    def train(self, num_epochs, iterations_per_epoch, batch_size, discriminator_steps, log_interval=10):
         discriminator_losses, mapping_losses = [], []
         epoch_bar = tqdm(range(1, num_epochs + 1), desc="Training Progress")
         for epoch in epoch_bar:
             mapping_loss_val, discriminator_loss_val = 0, 0
-            for batch_i, (source_emb, target_emb) in enumerate(dataloader, start=1):
-                
-                # Discriminator training
-                self.gan.discriminator.train()
-                self.optimizer_discriminator.zero_grad()
-                discriminator_input, discriminator_labels = self.get_xy(source_emb, target_emb)
-                discriminator_loss_val += self.discriminator_step(discriminator_input, discriminator_labels)
-                if batch_i % 2 == 0:
-                    # Mapping Training 
-                    self.gan.discriminator.eval()
-                    self.optimizer_mapping.zero_grad()
-                    discriminator_input, discriminator_labels = self.get_xy(source_emb, target_emb)
-                    mapping_labels = 1 - discriminator_labels     
-                    mapping_loss_val += self.mapping_step(discriminator_input, mapping_labels, normalize=True)
-            
+            for iteration in range(iterations_per_epoch):
+                for _ in range(discriminator_steps):
+                    # Discriminator training
+                    self.gan.discriminator.train()
+                    self.optimizer_discriminator.zero_grad()
+                    discriminator_input, discriminator_labels = self.get_xy(batch_size)
+                    discriminator_loss_val += self.discriminator_step(discriminator_input, discriminator_labels)
+
+                # Mapping Training 
+                self.gan.discriminator.eval()
+                self.optimizer_mapping.zero_grad()
+                discriminator_input, discriminator_labels = self.get_xy(batch_size)
+                mapping_labels = 1 - discriminator_labels     
+                mapping_loss_val += self.mapping_step(discriminator_input, mapping_labels, normalize=True)
+        
             self.scheduler_discriminator.step()
             self.scheduler_mapping.step()   
             # Record losses
-            mapping_losses.append(mapping_loss_val / batch_i)
-            discriminator_losses.append(discriminator_loss_val / batch_i)
+            mapping_losses.append(mapping_loss_val / (iteration+1))
+            discriminator_losses.append(discriminator_loss_val / ((iteration+1)*discriminator_steps))
             
             # Logging
             if epoch % log_interval == 0:
@@ -58,12 +57,15 @@ class Trainer():
         labels = labels.unsqueeze(1)
         return labels
     
-    def get_xy(self, source_emb, target_emb):
-        source_emb, target_emb = source_emb.to(self.device), target_emb.to(self.device)
+    def get_xy(self, batch_size):
+        source_emb_id = torch.Tensor(batch_size).random_(len(self.source_embeddings)).long()
+        target_emb_id = torch.Tensor(batch_size).random_(len(self.source_embeddings)).long()
+        source_emb = self.source_embeddings[source_emb_id].to(self.device)
+        target_emb = self.target_embeddings[target_emb_id].to(self.device)
         mapped_emb = self.gan.mapping(source_emb)
         x = torch.cat([mapped_emb, target_emb], 0).to(self.device)
-        y = torch.Tensor(2*self.batch_size).zero_().float().to(self.device)
-        y = self.smooth_labels(y, self.batch_size)
+        y = torch.Tensor(2*batch_size).zero_().float().to(self.device)
+        y = self.smooth_labels(y, batch_size)
         return x, y
 
     def discriminator_step(self, discriminator_input, discriminator_labels):

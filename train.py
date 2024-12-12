@@ -38,11 +38,13 @@ def main():
     
     # Training parameters
     parser.add_argument('--batch_size', type=int, default=32, help="Batch size for training")
-    parser.add_argument('--num_epochs', type=int, default=25, help="Number of training epochs")
+    parser.add_argument('--num_epochs', type=int, default=5, help="Number of training epochs")
+    parser.add_argument('--epoch_size', type=int, default=10_000, help="Number of iterations per epoch")
     parser.add_argument('--lr_mapping', type=float, default=0.1, help="Learning rate for the mapping optimizer")
     parser.add_argument('--lr_discriminator', type=float, default=0.1, help="Learning rate for the discriminator optimizer")
     parser.add_argument('--log_interval', type=int, default=10, help="Interval for logging training progress")
     parser.add_argument('--mapping_decay', type=float, default=1., help="LR decay for mapping")
+    parser.add_argument('--discriminator_steps', type=int, default=1, help="Multiple of training steps for discriminator")
     parser.add_argument('--discriminator_decay', type=float, default=1., help="LR decay for discriminator")
     
     # Model parameters
@@ -86,10 +88,10 @@ def main():
         source_embeddings, target_embeddings = generate_synthetic_data(
             num_samples=args.num_samples, embedding_dim=args.embedding_dim
         )
-
+    
     # Create DataLoader
-    dataset = TensorDataset(source_embeddings, target_embeddings)
-    train_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
+    #dataset = TensorDataset(source_embeddings, target_embeddings)
+    #train_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
     # Initialize GAN model
     gan = GAN(
         input_dim=args.embedding_dim,
@@ -124,7 +126,8 @@ def main():
     # Trainer
     trainer = Trainer(
         gan=gan,
-        dataloader=train_loader,
+        source_embeddings=source_embeddings,
+        target_embeddings=target_embeddings,
         optimizer_mapping=mapping_optimizer,
         optimizer_discriminator=discriminator_optimizer,
         criterion_mapping=criterion_mapping,
@@ -133,9 +136,15 @@ def main():
         scheduler_discriminator=scheduler_discriminator, 
         device=args.device
     )
-
+    
     # Train
-    d_l, m_l = trainer.train(num_epochs=args.num_epochs, log_interval=args.log_interval)
+    d_l, m_l = trainer.train(
+        num_epochs=args.num_epochs,
+        iterations_per_epoch=args.epoch_size,
+        log_interval=args.log_interval,
+        batch_size=args.batch_size,
+        discriminator_steps=args.discriminator_steps
+    )
 
     # Plot losses
     plt.plot(d_l, label="Discriminator Loss")
