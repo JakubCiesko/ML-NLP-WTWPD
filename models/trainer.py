@@ -18,7 +18,7 @@ class Trainer():
     def train(self, num_epochs, iterations_per_epoch, batch_size, discriminator_steps, mapping_steps, log_interval=10):
         discriminator_losses, mapping_losses = [], []
         epoch_bar = tqdm(range(1, num_epochs + 1), desc="Training Progress")
-        iteration_bar = tqdm(range(iterations_per_epoch), leave=True, desc="Iteration")
+        iteration_bar = tqdm(range(iterations_per_epoch), leave=False, desc="Iteration")
         for epoch in epoch_bar:
             mapping_loss_val, discriminator_loss_val = 0, 0
             for iteration in iteration_bar:
