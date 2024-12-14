@@ -49,6 +49,7 @@ def main():
     parser.add_argument('--mapping_steps', type=int, default=1, help="Multiple of training steps for mapping")
     parser.add_argument('--save_after_n_epoch', type=int, default=0, help="Number of epochs to save")
     parser.add_argument('--checkpoint_dir', type=str, default="", help="Path for saving")
+    parser.add_argument('--n_refinement', type=int, default=1, help="Number of refinement steps")
     
     # Model parameters
     parser.add_argument('--embedding_dim', type=int, default=300, help="Dimensionality of the embeddings")
@@ -151,6 +152,7 @@ def main():
         discriminator_steps=args.discriminator_steps, 
         mapping_steps=args.mapping_steps, 
         save_after_n_epoch=args.save_after_n_epoch,
+        n_refinement=args.n_refinement,
         checkpoint_dir=args.checkpoint_dir
     )
 

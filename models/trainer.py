@@ -18,7 +18,7 @@ class Trainer():
         self.scheduler_mapping = scheduler_mapping
         self.scheduler_discriminator = scheduler_discriminator
 
-    def train(self, num_epochs, iterations_per_epoch, batch_size, discriminator_steps, mapping_steps, save_after_n_epoch, checkpoint_dir, log_interval=10):
+    def train(self, num_epochs, iterations_per_epoch, batch_size, discriminator_steps, mapping_steps, n_refinement, save_after_n_epoch, checkpoint_dir, log_interval=10):
         if save_after_n_epoch and checkpoint_dir:
             os.makedirs(checkpoint_dir, exist_ok=True)
         discriminator_losses, mapping_losses = [], []
@@ -61,8 +61,8 @@ class Trainer():
                 if epoch % save_after_n_epoch == 0:
                     checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_epoch_{epoch}.pt")
                     self.gan.save_checkpoint(epoch, discriminator_losses, mapping_losses, checkpoint_path)
-        
-        self.procrustes(self.source_embeddings, self.target_embeddings)
+        for _ in range(n_refinement):
+            self.procrustes(self.source_embeddings, self.target_embeddings)
         return discriminator_losses, mapping_losses
         
     def smooth_labels(self, labels, point):
