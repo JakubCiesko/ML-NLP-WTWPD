@@ -67,6 +67,7 @@ def main():
                     help="Optimizer for the mapping network (choices: 'sgd', 'adam')")
     parser.add_argument('--optimizer_discriminator', type=str, choices=['sgd', 'adam'], default='sgd', 
                     help="Optimizer for the discriminator network (choices: 'sgd', 'adam')")
+    parser.add_argument('--num_hidden_layers', type=int, default=2, help="Number of hidden layers (discriminator)")
 
 
 
@@ -97,6 +98,7 @@ def main():
     #train_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
     # Initialize GAN model
     gan = GAN(
+        num_hidden_layers=args.num_hidden_layers,
         input_dim=args.embedding_dim,
         output_dim=args.embedding_dim,
         hidden_dim=args.hidden_dim,

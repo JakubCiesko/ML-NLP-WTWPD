@@ -58,7 +58,7 @@ class Trainer():
             if save_after_n_epoch and checkpoint_dir:
                 if epoch % save_after_n_epoch == 0:
                     checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_epoch_{epoch}.pt")
-                    self.save_checkpoint(epoch, discriminator_losses, mapping_losses, checkpoint_path)
+                    self.gan.save_checkpoint(epoch, discriminator_losses, mapping_losses, checkpoint_path)
         return discriminator_losses, mapping_losses
         
     def smooth_labels(self, labels, point):
