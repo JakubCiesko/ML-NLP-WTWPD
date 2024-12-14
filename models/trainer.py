@@ -1,3 +1,4 @@
+import os
 import torch
 from tqdm import tqdm
 
@@ -15,7 +16,9 @@ class Trainer():
         self.scheduler_mapping = scheduler_mapping
         self.scheduler_discriminator = scheduler_discriminator
 
-    def train(self, num_epochs, iterations_per_epoch, batch_size, discriminator_steps, mapping_steps, log_interval=10):
+    def train(self, num_epochs, iterations_per_epoch, batch_size, discriminator_steps, mapping_steps, save_after_n_epoch, checkpoint_dir, log_interval=10):
+        os.makedirs(checkpoint_dir, exist_ok=True)
+
         discriminator_losses, mapping_losses = [], []
         epoch_bar = tqdm(range(1, num_epochs + 1), desc="Training Progress")
         iteration_bar = tqdm(range(iterations_per_epoch), leave=False, desc="Iteration")
@@ -36,9 +39,11 @@ class Trainer():
                     discriminator_input, discriminator_labels = self.get_xy(batch_size)
                     mapping_labels = 1 - discriminator_labels     
                     mapping_loss_val += self.mapping_step(discriminator_input, mapping_labels, normalize=True)
-        
-            self.scheduler_discriminator.step()
-            self.scheduler_mapping.step()   
+            # Manipulate LR
+            if self.scheduler_discriminator:
+                self.scheduler_discriminator.step()
+            if self.scheduler_mapping:
+                self.scheduler_mapping.step()
             # Record losses
             mapping_losses.append(mapping_loss_val / (iterations_per_epoch*mapping_steps))
             discriminator_losses.append(discriminator_loss_val / (iterations_per_epoch*discriminator_steps))
@@ -50,6 +55,10 @@ class Trainer():
                     f"D_lr={self.optimizer_discriminator.param_groups[0]['lr']:.6f}, "
                     f"M_lr={self.optimizer_mapping.param_groups[0]['lr']:.6f}"
                 )
+            if save_after_n_epoch and checkpoint_dir:
+                if epoch % save_after_n_epoch == 0:
+                    checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_epoch_{epoch}.pt")
+                    self.save_checkpoint(epoch, discriminator_losses, mapping_losses, checkpoint_path)
         return discriminator_losses, mapping_losses
         
     def smooth_labels(self, labels, point):
