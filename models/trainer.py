@@ -20,7 +20,7 @@ class Trainer():
         epoch_bar = tqdm(range(1, num_epochs + 1), desc="Training Progress")
         for epoch in epoch_bar:
             mapping_loss_val, discriminator_loss_val = 0, 0
-            for iteration in range(iterations_per_epoch):
+            for iteration in tqdm(range(iterations_per_epoch), leave=False, desc="Iteration"):
                 for _ in range(discriminator_steps):
                     # Discriminator training
                     self.gan.discriminator.train()

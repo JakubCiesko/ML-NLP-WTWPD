@@ -4,8 +4,8 @@ import argparse
 import numpy as np
 from models.gan import GAN
 from models.trainer import Trainer
-from torch.utils.data import DataLoader, TensorDataset
 from matplotlib import pyplot as plt
+import datetime
 
 
 
@@ -149,7 +149,7 @@ def main():
     # Plot losses
     plt.plot(d_l, label="Discriminator Loss")
     plt.plot(m_l, label="Mapping Loss")
-    plt.title("Model loss")
+    plt.title(f"Model loss\n Plotted at {datetime.datetime.now()}.")
     plt.legend()
     plt.show()
 
