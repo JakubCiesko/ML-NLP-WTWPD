@@ -137,7 +137,7 @@ def main():
         device=args.device
     )
     
-    # Train
+    # Train 
     d_l, m_l = trainer.train(
         num_epochs=args.num_epochs,
         iterations_per_epoch=args.epoch_size,
@@ -149,6 +149,7 @@ def main():
     # Plot losses
     plt.plot(d_l, label="Discriminator Loss")
     plt.plot(m_l, label="Mapping Loss")
+    plt.title("Model loss")
     plt.legend()
     plt.show()
 
