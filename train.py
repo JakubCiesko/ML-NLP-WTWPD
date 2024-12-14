@@ -147,7 +147,9 @@ def main():
         log_interval=args.log_interval,
         batch_size=args.batch_size,
         discriminator_steps=args.discriminator_steps, 
-        mapping_steps=args.mapping_steps
+        mapping_steps=args.mapping_steps, 
+        save_after_n_epoch=args.save_after_n_epoch,
+        checkpoint_dir=args.checkpoint_dir
     )
 
     # Plot losses

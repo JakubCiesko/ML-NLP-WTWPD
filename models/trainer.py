@@ -17,14 +17,14 @@ class Trainer():
         self.scheduler_discriminator = scheduler_discriminator
 
     def train(self, num_epochs, iterations_per_epoch, batch_size, discriminator_steps, mapping_steps, save_after_n_epoch, checkpoint_dir, log_interval=10):
-        os.makedirs(checkpoint_dir, exist_ok=True)
-
+        if save_after_n_epoch and checkpoint_dir:
+            os.makedirs(checkpoint_dir, exist_ok=True)
         discriminator_losses, mapping_losses = [], []
         epoch_bar = tqdm(range(1, num_epochs + 1), desc="Training Progress")
-        iteration_bar = tqdm(range(iterations_per_epoch), leave=False, desc="Iteration")
+        #iteration_bar = tqdm(range(iterations_per_epoch), leave=False, desc="Iteration")
         for epoch in epoch_bar:
             mapping_loss_val, discriminator_loss_val = 0, 0
-            for _ in iteration_bar:
+            for _ in range(iterations_per_epoch):
                 for _ in range(discriminator_steps):
                     # Discriminator training
                     self.gan.discriminator.train()
