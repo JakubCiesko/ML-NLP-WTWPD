@@ -21,7 +21,7 @@ class Trainer():
         iteration_bar = tqdm(range(iterations_per_epoch), leave=False, desc="Iteration")
         for epoch in epoch_bar:
             mapping_loss_val, discriminator_loss_val = 0, 0
-            for iteration in iteration_bar:
+            for _ in iteration_bar:
                 for _ in range(discriminator_steps):
                     # Discriminator training
                     self.gan.discriminator.train()
@@ -40,8 +40,8 @@ class Trainer():
             self.scheduler_discriminator.step()
             self.scheduler_mapping.step()   
             # Record losses
-            mapping_losses.append(mapping_loss_val / (iteration+1))
-            discriminator_losses.append(discriminator_loss_val / ((iteration+1)*discriminator_steps))
+            mapping_losses.append(mapping_loss_val / (iterations_per_epoch*mapping_steps))
+            discriminator_losses.append(discriminator_loss_val / (iterations_per_epoch*discriminator_steps))
             
             # Logging
             if epoch % log_interval == 0:
