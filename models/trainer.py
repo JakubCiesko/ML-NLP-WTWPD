@@ -15,12 +15,13 @@ class Trainer():
         self.scheduler_mapping = scheduler_mapping
         self.scheduler_discriminator = scheduler_discriminator
 
-    def train(self, num_epochs, iterations_per_epoch, batch_size, discriminator_steps, log_interval=10):
+    def train(self, num_epochs, iterations_per_epoch, batch_size, discriminator_steps, mapping_steps, log_interval=10):
         discriminator_losses, mapping_losses = [], []
         epoch_bar = tqdm(range(1, num_epochs + 1), desc="Training Progress")
+        iteration_bar = tqdm(range(iterations_per_epoch), leave=True, desc="Iteration")
         for epoch in epoch_bar:
             mapping_loss_val, discriminator_loss_val = 0, 0
-            for iteration in tqdm(range(iterations_per_epoch), leave=False, desc="Iteration"):
+            for iteration in iteration_bar:
                 for _ in range(discriminator_steps):
                     # Discriminator training
                     self.gan.discriminator.train()
@@ -29,11 +30,12 @@ class Trainer():
                     discriminator_loss_val += self.discriminator_step(discriminator_input, discriminator_labels)
 
                 # Mapping Training 
-                self.gan.discriminator.eval()
-                self.optimizer_mapping.zero_grad()
-                discriminator_input, discriminator_labels = self.get_xy(batch_size)
-                mapping_labels = 1 - discriminator_labels     
-                mapping_loss_val += self.mapping_step(discriminator_input, mapping_labels, normalize=True)
+                for _ in range(mapping_steps):
+                    self.gan.discriminator.eval()
+                    self.optimizer_mapping.zero_grad()
+                    discriminator_input, discriminator_labels = self.get_xy(batch_size)
+                    mapping_labels = 1 - discriminator_labels     
+                    mapping_loss_val += self.mapping_step(discriminator_input, mapping_labels, normalize=True)
         
             self.scheduler_discriminator.step()
             self.scheduler_mapping.step()   

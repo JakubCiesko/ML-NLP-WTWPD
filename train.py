@@ -46,6 +46,7 @@ def main():
     parser.add_argument('--mapping_decay', type=float, default=1., help="LR decay for mapping")
     parser.add_argument('--discriminator_steps', type=int, default=1, help="Multiple of training steps for discriminator")
     parser.add_argument('--discriminator_decay', type=float, default=1., help="LR decay for discriminator")
+    parser.add_argument('--mapping_steps', type=int, default=1, help="Multiple of training steps for mapping")
     
     # Model parameters
     parser.add_argument('--embedding_dim', type=int, default=300, help="Dimensionality of the embeddings")
@@ -143,7 +144,8 @@ def main():
         iterations_per_epoch=args.epoch_size,
         log_interval=args.log_interval,
         batch_size=args.batch_size,
-        discriminator_steps=args.discriminator_steps
+        discriminator_steps=args.discriminator_steps, 
+        mapping_steps=args.mapping_steps
     )
 
     # Plot losses
