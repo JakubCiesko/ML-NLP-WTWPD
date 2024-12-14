@@ -1,6 +1,8 @@
 import os
+import scipy
 import torch
 from tqdm import tqdm
+
 
 
 class Trainer():
@@ -59,6 +61,8 @@ class Trainer():
                 if epoch % save_after_n_epoch == 0:
                     checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_epoch_{epoch}.pt")
                     self.gan.save_checkpoint(epoch, discriminator_losses, mapping_losses, checkpoint_path)
+        
+        self.procrustes(self.source_embeddings, self.target_embeddings)
         return discriminator_losses, mapping_losses
         
     def smooth_labels(self, labels, point):
@@ -94,3 +98,9 @@ class Trainer():
         if normalize:
             self.gan.mapping.normalize()
         return mapping_loss.data.item()
+
+    def procrustes(self, source_emb, target_emb):
+        W = self.gan.mapping.W.weight
+        M = target_emb.transpose(0, 1).mm(source_emb).cpu().numpy()
+        U, S, V_t = scipy.linalg.svd(M, full_matrices=True)
+        W.data.copy_(torch.from_numpy(U.dot(V_t)).type_as(W).detach())
