@@ -156,6 +156,8 @@ def main():
         checkpoint_dir=args.checkpoint_dir
     )
 
+    torch.save(gan.state_dict(), f"{args.checkpoint_dir}/wtwpd_gan.model")
+
     # Plot losses
     plt.plot(d_l, label="Discriminator Loss")
     plt.plot(m_l, label="Mapping Loss")

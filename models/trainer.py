@@ -62,7 +62,8 @@ class Trainer():
                     checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_epoch_{epoch}.pt")
                     self.gan.save_checkpoint(epoch, discriminator_losses, mapping_losses, checkpoint_path)
         for _ in range(n_refinement):
-            self.procrustes(self.source_embeddings, self.target_embeddings)
+            common_len = min(len(self.source_embeddings)//5, len(self.target_embeddings)//5)
+            self.procrustes(self.source_embeddings[:common_len], self.target_embeddings[:common_len])
         return discriminator_losses, mapping_losses
         
     def smooth_labels(self, labels, point):
