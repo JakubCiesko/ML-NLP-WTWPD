@@ -107,7 +107,6 @@ class Trainer():
         U, S, V_t = scipy.linalg.svd(M, full_matrices=True)
         W.data.copy_(torch.from_numpy(U.dot(V_t)).type_as(W).detach())
 
-
     def compute_average_similarity_torch(self, embeddings, k=10):
         # Normalize embeddings
         embeddings = F.normalize(embeddings, p=2, dim=1)
@@ -144,4 +143,4 @@ class Trainer():
     def find_nearest_neighbors(self, mapped_source_embeddings, target_embeddings, k=10):
         csls_scores = self.compute_csls_score_torch(mapped_source_embeddings, target_embeddings, k)
         nearest_neighbors = np.argmax(csls_scores, axis=1)
-        return nearest_neighbors
+        return nearest_neighbors, csls_scores
