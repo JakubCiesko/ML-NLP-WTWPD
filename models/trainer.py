@@ -1,9 +1,10 @@
 import os
 import scipy
 import torch
+import numpy as np
+import torch.nn.functional as F
 from tqdm import tqdm
-
-
+from sklearn.metrics.pairwise import cosine_similarity
 
 class Trainer():
     def __init__(self, gan, source_embeddings, target_embeddings, optimizer_mapping, optimizer_discriminator, criterion_mapping, criterion_discriminator, scheduler_mapping=None, scheduler_discriminator=None, device='cpu'):
@@ -105,3 +106,42 @@ class Trainer():
         M = target_emb.transpose(0, 1).mm(source_emb).cpu().numpy()
         U, S, V_t = scipy.linalg.svd(M, full_matrices=True)
         W.data.copy_(torch.from_numpy(U.dot(V_t)).type_as(W).detach())
+
+
+    def compute_average_similarity_torch(self, embeddings, k=10):
+        # Normalize embeddings
+        embeddings = F.normalize(embeddings, p=2, dim=1)
+        
+        # Compute all cosine similarities
+        similarities = torch.matmul(embeddings, embeddings.T)
+        similarities.fill_diagonal_(-float('inf'))  # Ignore self-similarity
+        
+        # Compute the average similarity for the top k nearest neighbors
+        topk_sim, _ = torch.topk(similarities, k, dim=1)
+        avg_sim = topk_sim.mean(dim=1)
+        return avg_sim
+
+    def compute_csls_score_torch(self, source_embeddings, target_embeddings, k=10):
+        # Normalize embeddings
+        source_embeddings = F.normalize(source_embeddings, p=2, dim=1)
+        target_embeddings = F.normalize(target_embeddings, p=2, dim=1)
+        
+        # Compute all cosine similarities
+        similarities = torch.matmul(source_embeddings, target_embeddings.T)
+        
+        # Compute local densities
+        source_avg_sim = self.compute_average_similarity_torch(source_embeddings, k)
+        target_avg_sim = self.compute_average_similarity_torch(target_embeddings, k)
+        
+        # Expand local densities for subtraction
+        source_avg_sim = source_avg_sim.unsqueeze(1)  # (n_source, 1)
+        target_avg_sim = target_avg_sim.unsqueeze(0)  # (1, n_target)
+        
+        # Compute CSLS scores
+        csls_scores = 2 * similarities - source_avg_sim - target_avg_sim
+        return csls_scores
+
+    def find_nearest_neighbors(self, mapped_source_embeddings, target_embeddings, k=10):
+        csls_scores = self.compute_csls_score_torch(mapped_source_embeddings, target_embeddings, k)
+        nearest_neighbors = np.argmax(csls_scores, axis=1)
+        return nearest_neighbors
