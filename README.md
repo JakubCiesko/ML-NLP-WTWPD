@@ -6,6 +6,7 @@ This repository contains the implementation and related materials for the paper 
 - **`main` branch:** Contains the core setup for the project.
 - **`implementation` branch:** Includes the code for re-implementing the proposed method.
 - **`poster-presentation` branch:** Hosts the materials related to the poster presentation.
+- **`final` branch:** Contains the final submitted code.
 
 ### **Poster Presentation**
 You can view the poster summarizing the research paper by clicking the link below:
